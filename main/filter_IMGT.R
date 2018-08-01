@@ -1,8 +1,9 @@
 # August 01st; 2018
 # Script for filtering data from IMGT database
-require(tigger)
-require(dplyr)
-require(alakazam)
+require(tigger, quietly = T,  warn.conflicts = F)
+require(dplyr, quietly = T,  warn.conflicts = F)
+require(alakazam, quietly = T,  warn.conflicts = F)
+require(seqinr, quietly = T,  warn.conflicts = F)
 
 #' @description Function for filtering raw IMGT data (selecting organism, chain type, and region)
 #' @param input - path to raw IMGT data
@@ -33,5 +34,6 @@ filter_IMGT <- function(input, organism = "Homosapiens", chain_type, region) {
   #convert headers into only allele names
   conv_names <- strsplit(names(ref_seq), "[|]")
   names(ref_seq) <- sapply(conv_names, "[", 2)
+  write.fasta(sequences = as.list(ref_seq), names = names(ref_seq), file.out = paste(input, Sys.Date(), "filter", sep = "_"))
   return(ref_seq)
 }
