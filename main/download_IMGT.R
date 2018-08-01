@@ -6,14 +6,14 @@
 #' @param sequence_type - nucleotide/protein
 #' @param gapped_format - logical, if the sequence have to be in IMGT gapped format
 #' @param out_file - name of output directory (default saved in 'data/'; named as in IMGT database)
-download_IMGT <- function(sequence_type, gapped_format = T, out_file = "data" ) {
-  if (sequence_type == "nucleotide" & gapped_format = T) {
+download_IMGT <- function(sequence_type, gapped_format = T, out_file = "data") {
+  if (sequence_type == "nucleotide" & gapped_format == T) {
     file_name <- "IMGTGENEDB-ReferenceSequences.fasta-nt-WithGaps-F+ORF+inframeP"
-  } else if (sequence_type == "nucleotide" & gapped_format = F) {
+  } else if (sequence_type == "nucleotide" & gapped_format == F) {
     file_name <- "IMGTGENEDB-ReferenceSequences.fasta-nt-WithoutGaps-F+ORF+inframeP"
-  } else if (sequence_type == "protein" & gapped_format = T) {
+  } else if (sequence_type == "protein" & gapped_format == T) {
     file_name <- "IMGTGENEDB-ReferenceSequences.fasta-AA-WithGaps-F+ORF+inframeP"
-  } else if (sequence_type == "protein" & gapped_format = T) {
+  } else if (sequence_type == "protein" & gapped_format == T) {
     file_name <- "IMGTGENEDB-ReferenceSequences.fasta-AA-WithoutGaps-F+ORF+inframeP"
   }
   
@@ -21,5 +21,6 @@ download_IMGT <- function(sequence_type, gapped_format = T, out_file = "data" ) 
                 destfile = file.path(out_file, paste(Sys.Date(), file_name, sep = "_")),
                 method = "wget")
   
+  return(cat("Downloading", sequence_type, "sequence completetd"))
 }
 
