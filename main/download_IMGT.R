@@ -1,7 +1,5 @@
 # August 01st; 2018
 # Script for downloading data from IMGT database
-require(tigger)
-require(dplyr)
 
 #' @description Function for downloading data from the IMGT database
 #' @param sequence_type - nucleotide/protein
