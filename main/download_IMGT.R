@@ -18,7 +18,8 @@ download_IMGT <- function(sequence_type, gapped_format = T, out_file = "data") {
   download.file(file.path("http://www.imgt.org/download/GENE-DB", file_name),
                 destfile = file.path(out_file, paste(Sys.Date(), file_name, sep = "_")),
                 method = "wget")
-  return(cat("Downloading", sequence_type, "sequence completetd"))
+  cat("Downloading", sequence_type, "sequence completetd")
+  return(file.path(out_file, paste(Sys.Date(), file_name, sep = "_")))
 }
 
 #' @description Function for filtering raw IMGT data (selecting organism, chain type, and region)
