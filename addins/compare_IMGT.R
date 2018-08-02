@@ -3,7 +3,7 @@
 #  * Ensembl file in a fasta format
 #  * gene name with a star at the end eg: IGHV2-5* or chain type and region eg: "IGKV"
 
-
+# Run script in a console eg: Rscript compare_IMGT.R NO ../data/2018_07_31_biomart_IG_nucleotide.txt IGLV
 
 args = commandArgs(trailingOnly = TRUE)
 # Script for preparing comparison bewteen ensemb and IMGT data
@@ -18,13 +18,6 @@ source("../main/download_IMGT.R")
 source("../main/filter_IMGT.R")
 options(stringsAsFactors = F)
 # =================================================== args ===================================================================
-args <- c()
-IMGT_file_1 <- "NO"
-Ensembl_file_1 <- "data/2018_07_31_biomart_IG_nucleotide.txt"
-gene_to_compare <- "IGLV"
-args[1] <- IMGT_file_1
-args[2] <- Ensembl_file_1
-args[3] <- gene_to_compare
 
 if (length(args) != 3 ) {
   stop("You have to provide 3 parameters: 
