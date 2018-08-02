@@ -3,19 +3,18 @@ args = commandArgs(trailingOnly = TRUE)
 
 # ==================================================  load required packages  ================================================
 library(tigger, quietly = T, verbose = F)
+library(doParallel, quietly = T, verbose = F)
 library(msa, quietly = T, verbose = F)
 library(dplyr, quietly = T, verbose = F, warn.conflicts = F)
 source("main/download_IMGT.R")
 source("main/filter_IMGT.R")
-
+options(stringsAsFactors = F)
 # =================================================== args ===================================================================
 args <- c()
-#IMGT_file_1 <- "data/2018-08-01_IMGTGENEDB-ReferenceSequences.fasta-nt-WithGaps-F+ORF+inframeP_2018-08-01"
 IMGT_file_1 <- NA
-#IMGT_file_1 <- "data/2018-08-01_IMGTGENEDB-ReferenceSequences.fasta-AA-WithGaps-F+ORF+inframeP"
-Ensembl_file_1 <- "data/2018_07_31_biomart_IG_protein.txt"
-#Ensembl_file_1 <- "data/2018_07_31_biomart_IG_protein.txt"
-gene_to_compare <- "IGHV2-5"
+#IMGT_file_1 <- NA
+Ensembl_file_1 <- "data/2018_07_31_biomart_IG_nucleotide.txt"
+gene_to_compare <- "IGHV"
 args[1] <- IMGT_file_1
 args[2] <- Ensembl_file_1
 args[3] <- gene_to_compare
@@ -24,7 +23,7 @@ if (length(args) != 3 ) {
   stop("You have to provide 3 parameters: 
         1. path to IMGT  data or NA
         2. path to Ensembl nucleotide data (this files should be downloaded yet)
-        3. name of the gene for comparing", call. = FALSE)
+        3. name of the gene for comparing or gene type eg: IGHV", call. = FALSE)
 } 
 
 path_to_IMGT    <- args[1]
@@ -63,8 +62,11 @@ if (component_nb_ensembl != component_nb_imgt) {
 }
 
 # ============================================= filter genes ===================================================================
-IMGT_data <- IMGT_data[grep(paste0(args[3], "*"), names(IMGT_data), value = T, fixed = T)]
-Ensembl_data <- Ensembl_data[grep(args[3], names(Ensembl_data), value = T, fixed = T)]
+IMGT_data <- IMGT_data[grep(gene_to_compare, names(IMGT_data), value = T, fixed = T)]
+if (grepl("*", gene_to_compare, fixed = T)) {
+  gene_to_compare <- gsub("*", "", gene_to_compare)
+}
+Ensembl_data <- Ensembl_data[grep(gene_to_compare, names(Ensembl_data), value = T, fixed = T)]
 
 # ========================================================= make MSA ==========================================================
 if (component_nb_ensembl == 0) {
@@ -82,50 +84,41 @@ names_seq <- sequences$nam
 sequences <- sequences$seq
 names(sequences) <- names_seq
 
-sel <- grep("[A-Z]", strsplit(sequences[length(Ensembl_data) + 1], split = "") %>% unlist()) %>% min()
-out <- substr(sequences, sel, nchar(sequences[1]))
-
+#sel <- grep("[A-Z]", strsplit(sequences[length(Ensembl_data) + 1], split = "") %>% unlist()) %>% min()
+#out <- substr(sequences, sel, nchar(sequences[1]))
+out <- sequences
 # ======================================================= prepare comparison ===================================================
-n <- length(sequences) * length(sequences)
-comparison <- data.frame(first = rep(NA, times = n), 
-                    second = rep(NA, times = n), 
-                    result = rep(NA, times = n), 
-                    diff = rep(NA, times = n), 
-                    positions = rep(NA, times = n), 
-                    len_x = rep(NA, times = n), 
-                    len_y = rep(NA, times = n), 
-                    nb_diff = rep(NA, times = n))
-counter <- 1
-for (x in 1:length(out)) {
-  for (y in 1:length(out)) {
+cl <- makeCluster(7)
+registerDoParallel(cl)
+out_tbl <- foreach(x = 1:length(out), .packages = "dplyr") %dopar% {
+  split_x <- strsplit(out[x], split = "") %>% unlist()
+  lapply(1:length(out), function(y) { 
     result <- out[x] == out[y]
-    differences <- strsplit(out[x], split = "") %>% unlist() != strsplit(out[y], split = "") %>% unlist()
+    differences <- split_x != strsplit(out[y], split = "") %>% unlist()
     nucl <- unlist(strsplit(out[x], split = ""))[differences]
     position <- which(differences == TRUE)
-    comparison[counter, ] <- c(names(out[x]), 
-                          names(out[y]), 
-                          result, 
-                          nucl %>% unname() %>% paste(., collapse = ", "), 
-                          position %>% unname() %>% paste(., collapse = ", "),
-                          nchar(out[x]), 
-                          nchar(out[y]), 
-                          length(nucl)
+    data.frame(first = names(out[x]), 
+               second = names(out[y]), 
+               result = result, 
+               diff = nucl %>% unname() %>% paste(., collapse = ", "), 
+               positions = position %>% unname() %>% paste(., collapse = ", "),
+               len_x = nchar(gsub("-", "", out[[x]])), 
+               len_y = nchar(gsub("-", "", out[[y]])), 
+               nb_diff = length(nucl), row.names = NULL, stringsAsFactors = F
     )
-    counter <- counter + 1
-  }
+  })
 }
 
-comparison[, 6:8] <- apply(comparison[, 6:8], 2, as.numeric)
-comparison <- comparison[comparison$first != comparison$second, ]
+out_tbl <- do.call(rbind, unlist(out_tbl, recursive = F))
+out_tbl <- out_tbl[out_tbl$first != out_tbl$second, ]
 
-out_file_path <- file.path("../results", paste("ensembl_IMGT", gene_to_compare, type_seq, Sys.Date(), sep = "_"))
-write.csv(comparison, out_file_path, row.names = F, quote = F)
+out_file_path <- file.path("../results", paste("ensembl_IMGT", gene_to_compare, type_seq, Sys.Date(), ".csv", sep = "_"))
+write.csv(out_tbl, out_file_path, row.names = F, quote = F)
 # ========================================== summary ================================
-identical_seq <- comparison[comparison$result == T, c(1,2)]
-length_diff <- comparison[strsplit(comparison$diff, ",") %>% lapply(., grep, pattern = "[A-Z]") %>% lapply(., function(x) length(x) == 0 ) %>% unlist(), ]
-df <- comparison[(grepl("^ENSG", comparison$first) & grepl("^[^ENSG]", comparison$second)) | (grepl("^ENSG", comparison$second) & grepl("^[^ENSG]", comparison$first)), ]  
-df <- df[order(df$nb_diff, decreasing = F), ] %>% head(length(Ensembl_data)*2)
-
+identical_seq <- out_tbl[out_tbl$result == T, c(1,2)]
+length_diff <- out_tbl[strsplit(out_tbl$diff, ",") %>% lapply(., grep, pattern = "[A-Z]") %>% lapply(., function(x) length(x) == 0 ) %>% unlist(), ]
+df <- out_tbl[(grepl("^ENSG", out_tbl$first) & grepl("^[^ENSG]", out_tbl$second)) | (grepl("^ENSG", out_tbl$second) & grepl("^[^ENSG]", out_tbl$first)), ]  
+df_ <- split.data.frame(df, df$first) %>% lapply(., function(x) x[order(x$nb_diff, decreasing = F), ] %>% head(4)) %>% unname() %>% do.call(rbind, .)
 cat("Identical sequences:") 
 identical_seq
 cat("Different in length:")
