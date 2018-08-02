@@ -10,12 +10,12 @@ source("main/filter_IMGT.R")
 
 # =================================================== args ===================================================================
 args <- c()
-#IMGT_file_1 <- "data/2018-08-01_IMGTGENEDB-ReferenceSequences.fasta-nt-WithGaps-F+ORF+inframeP_2018-08-01_filter"
+#IMGT_file_1 <- "data/2018-08-01_IMGTGENEDB-ReferenceSequences.fasta-nt-WithGaps-F+ORF+inframeP_2018-08-01"
 IMGT_file_1 <- NA
-# IMGT_file_1 <- "data/2018-08-01_IMGTGENEDB-ReferenceSequences.fasta-AA-WithGaps-F+ORF+inframeP"
-Ensembl_file_1 <- "data/2018_07_31_biomart_IG_nucleotide.txt"
-# Ensembl_file_1 <- "data/2018_07_31_biomart_IG_protein.txt"
-gene_to_compare <- "IGHV3-30"
+#IMGT_file_1 <- "data/2018-08-01_IMGTGENEDB-ReferenceSequences.fasta-AA-WithGaps-F+ORF+inframeP"
+Ensembl_file_1 <- "data/2018_07_31_biomart_IG_protein.txt"
+#Ensembl_file_1 <- "data/2018_07_31_biomart_IG_protein.txt"
+gene_to_compare <- "IGHV2-5"
 args[1] <- IMGT_file_1
 args[2] <- Ensembl_file_1
 args[3] <- gene_to_compare
@@ -46,7 +46,8 @@ if (is.na(path_to_IMGT)) {
     type_seq <- "protein" 
   }
   path_to_IMGT <- download_IMGT(type_seq)
-  IMGT_data <- filter_IMGT(input = path_to_IMGT, chain_type = substr(gene_to_compare, 3,3), region = substr(gene_to_compare, 4, 4))
+  #IMGT_data <- filter_IMGT(input = path_to_IMGT, chain_type = substr(gene_to_compare, 3,3), region = substr(gene_to_compare, 4, 4))
+  IMGT_data <- filter_IMGT(input = path_to_IMGT, chain_type = c("heavy", "light"), region = c("V", "D", "J"))
 } else {
   if (!file.exists(path_to_IMGT)) {
     stop("File not exist")
@@ -68,8 +69,10 @@ Ensembl_data <- Ensembl_data[grep(args[3], names(Ensembl_data), value = T, fixed
 # ========================================================= make MSA ==========================================================
 if (component_nb_ensembl == 0) {
   seq_object <- DNAStringSet(c(Ensembl_data, IMGT_data))
+  type_seq <- "nucleotide" 
 } else {
   seq_object <- AAStringSet(c(Ensembl_data, IMGT_data))
+  type_seq <- "protein" 
 }
 
 sequences <- msa(seq_object, order = "input")
@@ -115,19 +118,17 @@ for (x in 1:length(out)) {
 comparison[, 6:8] <- apply(comparison[, 6:8], 2, as.numeric)
 comparison <- comparison[comparison$first != comparison$second, ]
 
-out_file_path <- file.path("results", paste("ensembl_IMGT", gene_to_compare, type_seq, Sys.Date(), sep = "_"))
+out_file_path <- file.path("../results", paste("ensembl_IMGT", gene_to_compare, type_seq, Sys.Date(), sep = "_"))
 write.csv(comparison, out_file_path, row.names = F, quote = F)
 # ========================================== summary ================================
-
-#"Identical sequences:"  
 identical_seq <- comparison[comparison$result == T, c(1,2)]
-identical_seq
-
-#"Different in length:"
 length_diff <- comparison[strsplit(comparison$diff, ",") %>% lapply(., grep, pattern = "[A-Z]") %>% lapply(., function(x) length(x) == 0 ) %>% unlist(), ]
-length_diff[!(rownames(length_diff) %in% rownames(identical_seq)), ]
-
-#"Enseble sequences are the most similar to:"
 df <- comparison[(grepl("^ENSG", comparison$first) & grepl("^[^ENSG]", comparison$second)) | (grepl("^ENSG", comparison$second) & grepl("^[^ENSG]", comparison$first)), ]  
 df <- df[order(df$nb_diff, decreasing = F), ] %>% head(length(Ensembl_data)*2)
+
+cat("Identical sequences:") 
+identical_seq
+cat("Different in length:")
+length_diff[!(rownames(length_diff) %in% rownames(identical_seq)), ]
+cat("Enseble sequences are the most similar to:")
 df
