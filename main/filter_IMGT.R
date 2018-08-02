@@ -17,11 +17,14 @@ filter_IMGT <- function(input, organism = "Homosapiens", chain_type, region) {
   chains <- c()
   if ("heavy" %in% chain_type | "h" %in% chain_type | "H" %in% chain_type) {
     chains <- c(chains, "H")
-  } else if ("light" %in% chain_type) {
+  } 
+  if ("light" %in% chain_type) {
     chains <- c(chains, "L", "K")
-  } else if ("kappa" %in% chain_type & !("K" %in% chains) | "K" %in% chain_type & !("K" %in% chains)) {
+  } 
+  if ("kappa" %in% chain_type & !("K" %in% chains) | "K" %in% chain_type & !("K" %in% chains)) {
     chains <- c(chains, "K")
-  } else if ("lambda" %in% chain_type & !("L" %in% chains) | "L" %in% chain_type & !("L" %in% chains)) {
+  }
+  if ("lambda" %in% chain_type & !("L" %in% chains) | "L" %in% chain_type & !("L" %in% chains)) {
     chains <- c(chains, "L") 
   }
   if (("L" %in% chains | "K" %in% chains) & !("H" %in% chains) & "D" %in% region) {
