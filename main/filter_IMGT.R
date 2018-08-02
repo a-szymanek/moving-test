@@ -22,7 +22,7 @@ filter_IMGT <- function(input, organism = "Homosapiens", chain_type, region) {
   } else if ("kappa" %in% chain_type & !("K" %in% chains) | "K" %in% chain_type & !("K" %in% chains)) {
     chains <- c(chains, "K")
   } else if ("lambda" %in% chain_type & !("L" %in% chains) | "L" %in% chain_type & !("L" %in% chains)) {
-    chains <- c(chains, "K") 
+    chains <- c(chains, "L") 
   }
   if (("L" %in% chains | "K" %in% chains) & !("H" %in% chains) & "D" %in% region) {
     cat("D region not exist in light chains! Selected only V and J regions.")
