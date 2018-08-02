@@ -1,3 +1,10 @@
+# Compare IMGT sequences and Ensembl sequences
+# Required input info: 
+#  * Ensembl file in a fasta format
+#  * gene name with a star at the end eg: IGHV2-5* or chain type and region eg: "IGKV"
+
+
+
 args = commandArgs(trailingOnly = TRUE)
 # Script for preparing comparison bewteen ensemb and IMGT data
 
@@ -44,6 +51,7 @@ if (path_to_IMGT %in% "NO") {
   } else if (component_nb_ensembl > 0) {
     type_seq <- "protein" 
   }
+  dir.create("../data", showWarnings = F)
   path_to_IMGT <- download_IMGT(type_seq, out_file = "../data")
   IMGT_data <- filter_IMGT(input = path_to_IMGT, chain_type = c("heavy", "light"), region = c("V", "D", "J"))
 } else {
