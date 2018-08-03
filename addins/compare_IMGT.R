@@ -13,6 +13,7 @@
 #  len_x - orginal length of the first sequence (not relative to differences positions)
 #  len_y - orginal length of the second sequence (not relative to differences positions)
 #  nb_diff - number of different positions bewteen first and second sequence
+#  add_into - additional information about comparing sequences
 
 args = commandArgs(trailingOnly = TRUE)
 
@@ -47,17 +48,24 @@ Ensembl_data <- readIgFasta(path_to_Ensembl, strip_down_name = F)
 component_nb_ensembl <- Ensembl_data %>% strsplit("") %>% unlist(use.names = F) %>% table() %>% names() %>% grep("[ACTGN]",., invert = T) %>% length()
 
 if (path_to_IMGT %in% "NO") {
+  dir.create("../data", showWarnings = F)
   if (component_nb_ensembl == 0) {
     type_seq <- "nucleotide" 
+    path_IMGT <- paste0("../data/", Sys.Date(), "_IMGTGENEDB-ReferenceSequences.fasta-nt-WithGaps-F+ORF+inframeP")
   } else if (component_nb_ensembl > 0) {
     type_seq <- "protein" 
+    path_IMGT <- paste0("../data/", Sys.Date(), "_IMGTGENEDB-ReferenceSequences.fasta-AA-WithGaps-F+ORF+inframeP")
   }
-  dir.create("../data", showWarnings = F)
-  path_to_IMGT <- download_IMGT(type_seq, out_file = "../data")
-  IMGT_data <- filter_IMGT(input = path_to_IMGT, chain_type = c("heavy", "light"), region = c("V", "D", "J"))
+  check_if_exist <- file.exists(path_IMGT)
+  if (check_if_exist == F) {
+    path_to_IMGT <- download_IMGT(type_seq, out_file = "../data")
+    IMGT_data <- filter_IMGT(input = path_to_IMGT, chain_type = c("heavy", "light"), region = c("V", "D", "J"))
+  } else {
+    readIgFasta(path_IMGT, strip_down_name = F)
+  }
 } else {
   if (!file.exists(path_to_IMGT)) {
-    stop("File not exist")
+    stop("IMGT file not exist /or name in incorrect")
   } else {
     IMGT_data <- readIgFasta(path_to_IMGT, strip_down_name = F)
   }
@@ -130,4 +138,3 @@ out_tbl_$add_info[selected_most_similar] <- paste(out_tbl$add_info[selected_most
 #write table
 out_file_path <- file.path("../results", paste("ensembl_IMGT", gene_to_compare, type_seq, Sys.Date(), ".csv", sep = "_"))
 write.table(out_tbl, out_file_path, row.names = F, quote = F, sep = "\t")
-
