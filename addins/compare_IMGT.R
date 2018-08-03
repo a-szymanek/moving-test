@@ -1,12 +1,20 @@
-# Compare IMGT sequences and Ensembl sequences
+# Compare IMGT sequences and Ensembl sequences.
 # Required input info: 
 #  * Ensembl file in a fasta format
 #  * gene name with a star at the end eg: IGHV2-5* or chain type and region eg: "IGKV"
 
-# Run script in a console eg: Rscript compare_IMGT.R NO ../data/2018_07_31_biomart_IG_nucleotide.txt IGLV
+# Run script in a console eg: Rscript compare_IMGT.R NO ../data/2018_07_31_biomart_IG_nucleotide.txt IGHV2-5*
+
+# An output table includes following columns: 
+#  first and second - names of comparing sequences
+#  result (logical) TRUE if sequences are identical, otherwise FALSE
+#  diff  (character) nucleotides/amino acids differentiate comparing sequences
+#  positions - positions of differences
+#  len_x - orginal length of the first sequence (not relative to differences positions)
+#  len_y - orginal length of the second sequence (not relative to differences positions)
+#  nb_diff - number of different positions bewteen first and second sequence
 
 args = commandArgs(trailingOnly = TRUE)
-# Script for preparing comparison bewteen ensemb and IMGT data
 
 # ==================================================  load required packages  ================================================
 library(tigger, quietly = T, verbose = F)
@@ -64,7 +72,7 @@ if (component_nb_ensembl != component_nb_imgt) {
 # ============================================= filter genes ===================================================================
 IMGT_data <- IMGT_data[grep(gene_to_compare, names(IMGT_data), value = T, fixed = T)]
 if (grepl("*", gene_to_compare, fixed = T)) {
-  gene_to_compare <- gsub("*", "", gene_to_compare)
+  gene_to_compare <- gsub("*", "", gene_to_compare, fixed = T)
 }
 Ensembl_data <- Ensembl_data[grep(gene_to_compare, names(Ensembl_data), value = T, fixed = T)]
 
@@ -78,14 +86,11 @@ if (component_nb_ensembl == 0) {
 }
 
 sequences <- msa(seq_object, order = "input")
-#print(sequences, show = "complete")
 sequences <- msaConvert(sequences, type = "seqinr::alignment")
 names_seq <- sequences$nam
 sequences <- sequences$seq
 names(sequences) <- names_seq
 
-#sel <- grep("[A-Z]", strsplit(sequences[length(Ensembl_data) + 1], split = "") %>% unlist()) %>% min()
-#out <- substr(sequences, sel, nchar(sequences[1]))
 out <- sequences
 # ======================================================= prepare comparison ===================================================
 cl <- makeCluster(7)
@@ -112,16 +117,14 @@ out_tbl <- foreach(x = 1:length(out), .packages = "dplyr") %dopar% {
 out_tbl <- do.call(rbind, unlist(out_tbl, recursive = F))
 out_tbl <- out_tbl[out_tbl$first != out_tbl$second, ]
 
+length_diff <- out_tbl[strsplit(out_tbl$diff, ",") %>% lapply(., grep, pattern = "[A-Z]") %>% lapply(., function(x) length(x) == 0 ) %>% unlist(), ]
+
+# diff in length
 out_file_path <- file.path("../results", paste("ensembl_IMGT", gene_to_compare, type_seq, Sys.Date(), ".csv", sep = "_"))
+# most similar to
+df <- out_tbl[(grepl("^ENSG", out_tbl$first) & grepl("^[^ENSG]", out_tbl$second)) | (grepl("^ENSG", out_tbl$second) & grepl("^[^ENSG]", out_tbl$first)), ]
+df_ <- split.data.frame(df, df$first) %>% lapply(., function(x) x[order(x$nb_diff, decreasing = F), ] %>% head(4)) %>% unname() %>% do.call(rbind, .)
+
+#write table
 write.table(out_tbl, out_file_path, row.names = F, quote = F, sep = "\t")
-# ========================================== summary ================================
-# identical_seq <- out_tbl[out_tbl$result == T, c(1,2)]
-# length_diff <- out_tbl[strsplit(out_tbl$diff, ",") %>% lapply(., grep, pattern = "[A-Z]") %>% lapply(., function(x) length(x) == 0 ) %>% unlist(), ]
-# df <- out_tbl[(grepl("^ENSG", out_tbl$first) & grepl("^[^ENSG]", out_tbl$second)) | (grepl("^ENSG", out_tbl$second) & grepl("^[^ENSG]", out_tbl$first)), ]  
-# df_ <- split.data.frame(df, df$first) %>% lapply(., function(x) x[order(x$nb_diff, decreasing = F), ] %>% head(4)) %>% unname() %>% do.call(rbind, .)
-# cat("Identical sequences:") 
-# identical_seq
-# cat("Different in length:")
-# length_diff[!(rownames(length_diff) %in% rownames(identical_seq)), ]
-# cat("Enseble sequences are the most similar to:")
-# df
+
