@@ -129,9 +129,14 @@ out_tbl$add_info[strsplit(out_tbl$diff, ",") %>% lapply(., grep, pattern = "[A-Z
 
 # most similar to
 df <- out_tbl[(grepl("^ENSG", out_tbl$first) & grepl("^[^ENSG]", out_tbl$second)), ]
-min_diff_values <- tapply(df$nb_diff, df$first, min)
+min_diff_values <- tapply(df$nb_diff, df$first, min) #%>% as.data.frame() %>% tibble::rownames_to_column("first")
 
-selected_most_similar <- out_tbl$nb_diff %in% min_diff_values & (out_tbl$first %in% names(min_diff_values) | out_tbl$second %in% names(min_diff_values))
+selected_most_similar <- sapply(1:length(min_diff_values), function(x) {
+  (out_tbl$nb_diff %in% min_diff_values[x] & out_tbl$first %in% names(min_diff_values[x]))
+})
+
+selected_most_similar <- ifelse(rowSums(selected_most_similar) == 1, T, F)
+
 out_tbl$add_info[selected_most_similar] <- paste(out_tbl$add_info[selected_most_similar], "the most similar sequences", sep = "; ") %>% gsub("NA;", "", .)
 
 #write table
