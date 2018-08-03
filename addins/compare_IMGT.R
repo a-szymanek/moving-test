@@ -116,15 +116,18 @@ out_tbl <- foreach(x = 1:length(out), .packages = "dplyr") %dopar% {
 
 out_tbl <- do.call(rbind, unlist(out_tbl, recursive = F))
 out_tbl <- out_tbl[out_tbl$first != out_tbl$second, ]
-
-length_diff <- out_tbl[strsplit(out_tbl$diff, ",") %>% lapply(., grep, pattern = "[A-Z]") %>% lapply(., function(x) length(x) == 0 ) %>% unlist(), ]
-
 # diff in length
-out_file_path <- file.path("../results", paste("ensembl_IMGT", gene_to_compare, type_seq, Sys.Date(), ".csv", sep = "_"))
+out_tbl$add_info[strsplit(out_tbl$diff, ",") %>% lapply(., grep, pattern = "[A-Z]") %>% lapply(., function(x) length(x) == 0 ) %>% unlist()] <- "identical/or only different in length"
+
 # most similar to
-df <- out_tbl[(grepl("^ENSG", out_tbl$first) & grepl("^[^ENSG]", out_tbl$second)) | (grepl("^ENSG", out_tbl$second) & grepl("^[^ENSG]", out_tbl$first)), ]
-df_ <- split.data.frame(df, df$first) %>% lapply(., function(x) x[order(x$nb_diff, decreasing = F), ] %>% head(4)) %>% unname() %>% do.call(rbind, .)
+df <- out_tbl[(grepl("^ENSG", out_tbl$first) & grepl("^[^ENSG]", out_tbl$second)), ]
+min_diff_values <- tapply(df$nb_diff, df$first, min)
+
+out_tbl_ <- out_tbl
+selected_most_similar <- out_tbl$nb_diff %in% min_diff_values & (out_tbl$first %in% names(min_diff_values) | out_tbl$second %in% names(min_diff_values))
+out_tbl_$add_info[selected_most_similar] <- paste(out_tbl$add_info[selected_most_similar], "the most similar sequences", sep = "; ") %>% gsub("NA;", "", .)
 
 #write table
+out_file_path <- file.path("../results", paste("ensembl_IMGT", gene_to_compare, type_seq, Sys.Date(), ".csv", sep = "_"))
 write.table(out_tbl, out_file_path, row.names = F, quote = F, sep = "\t")
 
