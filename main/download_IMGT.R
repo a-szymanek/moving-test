@@ -18,7 +18,7 @@ download_IMGT <- function(sequence_type, gapped_format = T, out_file = "data") {
   download.file(file.path("http://www.imgt.org/download/GENE-DB", file_name),
                 destfile = file.path(out_file, paste(Sys.Date(), file_name, sep = "_")),
                 method = "wget")
-  cat("Downloading", sequence_type, "sequence completetd")
+  cat("Downloading", sequence_type, "sequence completetd\n")
   return(file.path(out_file, paste(Sys.Date(), file_name, sep = "_")))
 }
 
