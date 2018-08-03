@@ -51,17 +51,17 @@ if (path_to_IMGT %in% "NO") {
   dir.create("../data", showWarnings = F)
   if (component_nb_ensembl == 0) {
     type_seq <- "nucleotide" 
-    path_IMGT <- paste0("../data/", Sys.Date(), "_IMGTGENEDB-ReferenceSequences.fasta-nt-WithGaps-F+ORF+inframeP")
+    path_to_IMGT <- paste0("../data/", Sys.Date(), "_IMGTGENEDB-ReferenceSequences.fasta-nt-WithGaps-F+ORF+inframeP_filter")
   } else if (component_nb_ensembl > 0) {
     type_seq <- "protein" 
-    path_IMGT <- paste0("../data/", Sys.Date(), "_IMGTGENEDB-ReferenceSequences.fasta-AA-WithGaps-F+ORF+inframeP")
+    path_to_IMGT <- paste0("../data/", Sys.Date(), "_IMGTGENEDB-ReferenceSequences.fasta-AA-WithGaps-F+ORF+inframeP_filter")
   }
-  check_if_exist <- file.exists(path_IMGT)
+  check_if_exist <- file.exists(path_to_IMGT)
   if (check_if_exist == F) {
     path_to_IMGT <- download_IMGT(type_seq, out_file = "../data")
     IMGT_data <- filter_IMGT(input = path_to_IMGT, chain_type = c("heavy", "light"), region = c("V", "D", "J"))
   } else {
-    readIgFasta(path_IMGT, strip_down_name = F)
+    IMGT_data <- readIgFasta(path_to_IMGT, strip_down_name = F)
   }
 } else {
   if (!file.exists(path_to_IMGT)) {
@@ -71,11 +71,11 @@ if (path_to_IMGT %in% "NO") {
   }
 }
 
-component_nb_imgt <- IMGT_data %>% strsplit("") %>% unlist(use.names = F) %>% table() %>% names()  %>% grep("[ACTGN/.]",., invert = T) %>% length()
-
-if (component_nb_ensembl != component_nb_imgt) {
-  stop("You input data in different types nucleotide/protein")
-}
+# component_nb_imgt <- IMGT_data %>% strsplit("") %>% unlist(use.names = F) %>% table() %>% names()  %>% grep("[ACTGN/.]",., invert = T) %>% length()
+# 
+# if (component_nb_ensembl != component_nb_imgt) {
+#   stop("You input data in different types nucleotide/protein")
+# }
 
 # ============================================= filter genes ===================================================================
 IMGT_data <- IMGT_data[grep(gene_to_compare, names(IMGT_data), value = T, fixed = T)]
@@ -131,9 +131,8 @@ out_tbl$add_info[strsplit(out_tbl$diff, ",") %>% lapply(., grep, pattern = "[A-Z
 df <- out_tbl[(grepl("^ENSG", out_tbl$first) & grepl("^[^ENSG]", out_tbl$second)), ]
 min_diff_values <- tapply(df$nb_diff, df$first, min)
 
-out_tbl_ <- out_tbl
 selected_most_similar <- out_tbl$nb_diff %in% min_diff_values & (out_tbl$first %in% names(min_diff_values) | out_tbl$second %in% names(min_diff_values))
-out_tbl_$add_info[selected_most_similar] <- paste(out_tbl$add_info[selected_most_similar], "the most similar sequences", sep = "; ") %>% gsub("NA;", "", .)
+out_tbl$add_info[selected_most_similar] <- paste(out_tbl$add_info[selected_most_similar], "the most similar sequences", sep = "; ") %>% gsub("NA;", "", .)
 
 #write table
 out_file_path <- file.path("../results", paste("ensembl_IMGT", gene_to_compare, type_seq, Sys.Date(), ".csv", sep = "_"))
