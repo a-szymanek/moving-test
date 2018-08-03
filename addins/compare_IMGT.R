@@ -51,10 +51,10 @@ if (path_to_IMGT %in% "NO") {
   dir.create("../data", showWarnings = F)
   if (component_nb_ensembl == 0) {
     type_seq <- "nucleotide" 
-    path_to_IMGT <- paste0("../data/", Sys.Date(), "_IMGTGENEDB-ReferenceSequences.fasta-nt-WithGaps-F+ORF+inframeP_filter")
+    path_to_IMGT <- paste0("../data/", Sys.Date(), "_IMGTGENEDB-ReferenceSequences.fasta-nt-WithGaps-F+ORF+inframeP", Sys.Date(), "_filter")
   } else if (component_nb_ensembl > 0) {
     type_seq <- "protein" 
-    path_to_IMGT <- paste0("../data/", Sys.Date(), "_IMGTGENEDB-ReferenceSequences.fasta-AA-WithGaps-F+ORF+inframeP_filter")
+    path_to_IMGT <- paste0("../data/", Sys.Date(), "_IMGTGENEDB-ReferenceSequences.fasta-AA-WithGaps-F+ORF+inframeP", Sys.Date(), "_filter")
   }
   check_if_exist <- file.exists(path_to_IMGT)
   if (check_if_exist == F) {
@@ -128,8 +128,8 @@ out_tbl <- out_tbl[out_tbl$first != out_tbl$second, ]
 out_tbl$add_info[strsplit(out_tbl$diff, ",") %>% lapply(., grep, pattern = "[A-Z]") %>% lapply(., function(x) length(x) == 0 ) %>% unlist()] <- "identical/or only different in length"
 
 # most similar to
-df <- out_tbl[(grepl("^ENSG", out_tbl$first) & grepl("^[^ENSG]", out_tbl$second)), ]
-min_diff_values <- tapply(df$nb_diff, df$first, min) #%>% as.data.frame() %>% tibble::rownames_to_column("first")
+df <- out_tbl[(grepl("^ENSG", out_tbl$first) & grepl("^[^ENSG]", out_tbl$second)) | (grepl("^ENSG", out_tbl$second) & grepl("^[^ENSG]", out_tbl$first)), ]
+min_diff_values <- tapply(df$nb_diff, df$first, min)
 
 selected_most_similar <- sapply(1:length(min_diff_values), function(x) {
   (out_tbl$nb_diff %in% min_diff_values[x] & out_tbl$first %in% names(min_diff_values[x]))
