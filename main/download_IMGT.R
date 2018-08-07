@@ -5,6 +5,7 @@
 #' @param sequence_type - nucleotide/protein
 #' @param gapped_format - logical, if the sequence have to be in IMGT gapped format
 #' @param out_file - name of output directory (default saved in 'data/'; named as in IMGT database)
+#' TODO check if http://www.imgt.org/download/V-QUEST/V-QUEST_reference_directory/Homo_sapiens/IG/ return diffrenet sequences. Confirm info about partial sequences.
 download_IMGT <- function(sequence_type, gapped_format = T, out_file = "data") {
   if (sequence_type == "nucleotide" & gapped_format == T) {
     file_name <- "IMGTGENEDB-ReferenceSequences.fasta-nt-WithGaps-F+ORF+inframeP"
